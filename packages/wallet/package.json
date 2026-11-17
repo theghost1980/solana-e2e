@@ -1,0 +1,23 @@
+{
+  "name": "@solana-e2e/wallet",
+  "version": "0.1.0",
+  "description": "Wallet Standard test wallet for Solana dApps: mock or real signing, for Playwright and Vitest/jsdom.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./playwright": { "types": "./dist/playwright.d.ts", "default": "./dist/playwright.js" }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": ["solana", "wallet-standard", "playwright", "vitest", "e2e", "testing", "mock"],
+  "peerDependencies": {
+    "@solana/kit": ">=6 <9"
+  },
+  "peerDependenciesMeta": {}
+}

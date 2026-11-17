@@ -1,0 +1,30 @@
+{
+  "name": "solana-e2e-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@solana/kit": "^8.6.0",
+    "@solana/wallet-standard-features": "^1.5.0",
+    "@solana/wallet-standard-util": "^1.2.0",
+    "@types/node": "^26.6.6",
+    "@wallet-standard/app": "^1.1.1",
+    "@wallet-standard/base": "^1.1.1",
+    "@wallet-standard/features": "^1.1.1",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
