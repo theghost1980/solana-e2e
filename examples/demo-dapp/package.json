@@ -14,6 +14,7 @@
     "@wallet-standard/base": "^1.1.1"
   },
   "devDependencies": {
+    "@solana-e2e/playwright": "^0.1.0",
     "@solana-e2e/wallet": "^0.1.0"
   }
 }

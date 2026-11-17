@@ -1,0 +1,29 @@
+{
+  "name": "@solana-e2e/playwright",
+  "version": "0.1.0",
+  "description": "Playwright fixtures for Solana dApps: a Surfpool chain per worker and a funded Wallet Standard test wallet per test.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": ["solana", "playwright", "surfpool", "e2e", "testing", "wallet-standard", "fixtures"],
+  "repository": { "type": "git", "url": "git+https://github.com/theghost1980/solana-e2e.git", "directory": "packages/playwright" },
+  "homepage": "https://github.com/theghost1980/solana-e2e/tree/main/packages/playwright#readme",
+  "bugs": { "url": "https://github.com/theghost1980/solana-e2e/issues" },
+  "engines": { "node": ">=20.19" },
+  "dependencies": {
+    "@solana-e2e/wallet": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40",
+    "@solana/kit": "^8.0.0"
+  }
+}
