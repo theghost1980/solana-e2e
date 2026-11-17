@@ -31,7 +31,7 @@ let wallet: Wallet | undefined;
 let account: WalletAccount | undefined;
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const feature = <T>(name: string) => wallet?.features[name] as T | undefined;
+const feature = <T>(name: `${string}:${string}`) => wallet?.features[name] as T | undefined;
 
 function setStatus(text: string, kind: "ok" | "error" | "info" = "info") {
   const status = $("status");

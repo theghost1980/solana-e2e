@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "vite --port 5173 --strictPort",
     "build": "vite build",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@solana/kit": "^8.6.0",

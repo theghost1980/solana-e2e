@@ -85,7 +85,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/surfpool"
           cd "$RUNNER_TEMP/surfpool"
           curl -fsSL -o surfpool.tgz "https://github.com/solana-foundation/surfpool/releases/download/${SURFPOOL_VERSION}/${{ matrix.asset }}"
-          echo "${{ matrix.sha256 }}  surfpool.tgz" | sha256sum -c -
+          if command -v sha256sum >/dev/null; then echo "${{ matrix.sha256 }}  surfpool.tgz" | sha256sum -c -; else echo "${{ matrix.sha256 }}  surfpool.tgz" | shasum -a 256 -c -; fi
           tar -xzf surfpool.tgz
           echo "SURFPOOL_BIN=$RUNNER_TEMP/surfpool/${{ matrix.bin }}" >> "$GITHUB_ENV"
       - run: npm ci --ignore-scripts
