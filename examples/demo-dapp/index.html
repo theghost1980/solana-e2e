@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>solana-e2e demo dApp</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+      section { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+      button { margin: 0.25rem 0.25rem 0.25rem 0; }
+      #status[data-kind="ok"] { color: #0a7d32; }
+      #status[data-kind="error"] { color: #b00020; }
+      code { word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <h1>solana-e2e demo dApp</h1>
+    <section>
+      <h2>Wallets</h2>
+      <div id="wallets"></div>
+      <p>Account: <code id="account">Not connected</code></p>
+      <button id="disconnect">Disconnect</button>
+    </section>
+    <section>
+      <h2>Actions</h2>
+      <button id="sign-message">Sign message</button>
+      <button id="sign-in">Sign in</button>
+      <p>
+        <input id="memo" placeholder="memo text" value="gm" />
+        <button id="send-memo">Send memo</button>
+      </p>
+      <p>
+        <input id="recipient" placeholder="recipient address" size="44" />
+        <input id="lamports" placeholder="lamports" value="1000000" size="10" />
+        <button id="transfer">Transfer</button>
+      </p>
+    </section>
+    <p role="status" id="status">Ready</p>
+    <p>Last signature: <code id="last-signature"></code></p>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

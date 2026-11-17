@@ -1,0 +1,19 @@
+{
+  "name": "demo-dapp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173 --strictPort",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@solana/kit": "^8.6.0",
+    "@wallet-standard/app": "^1.1.1",
+    "@wallet-standard/base": "^1.1.1"
+  },
+  "devDependencies": {
+    "@solana-e2e/wallet": "^0.1.0"
+  }
+}

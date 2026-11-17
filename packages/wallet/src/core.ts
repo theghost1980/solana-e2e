@@ -370,27 +370,30 @@ export class TestWallet {
       this.log({ method: "connect", outcome: "approved", address: this.address });
       return {};
     }
-    await this.approveOrThrow({ method: "connect", address: this.address });
-    this.connected = true;
-    this.trusted = true;
-    this.emitChange();
-    return {};
+    return this.run({ method: "connect", address: this.address }, async () => {
+      this.connected = true;
+      this.trusted = true;
+      this.emitChange();
+      return {};
+    });
   }
 
   private async signMessage(address: string, message: Uint8Array) {
     const account = this.authorized(address, "signMessage");
-    await this.approveOrThrow({ method: "signMessage", address, message: decodeText(message) });
-    const signature = await signBytes(account.keyPair.privateKey, message);
-    return { signature: toArray(signature), signedMessage: toArray(message) };
+    return this.run({ method: "signMessage", address, message: decodeText(message) }, async () => {
+      const signature = await signBytes(account.keyPair.privateKey, message);
+      return { signature: toArray(signature), signedMessage: toArray(message) };
+    });
   }
 
   private async signTransaction(address: string, wire: Uint8Array, chain?: string) {
     const account = this.authorized(address, "signTransaction");
     const transaction = this.decode(wire);
-    const logged = await this.approveOrThrow({ method: "signTransaction", address, chain });
-    const signed = await partiallySignTransaction([account.keyPair], transaction);
-    logged.signature = base58.decode(signed.signatures[account.address] as Uint8Array);
-    return { signedTransaction: toArray(getTransactionEncoder().encode(signed)) };
+    return this.run({ method: "signTransaction", address, chain }, async (logged) => {
+      const signed = await partiallySignTransaction([account.keyPair], transaction);
+      logged.signature = base58.decode(signed.signatures[account.address] as Uint8Array);
+      return { signedTransaction: toArray(getTransactionEncoder().encode(signed)) };
+    });
   }
 
   private async signAndSend(
@@ -401,38 +404,26 @@ export class TestWallet {
   ) {
     const account = this.authorized(address, "signAndSendTransaction");
     const transaction = this.decode(wire);
-    const logged = await this.approveOrThrow({ method: "signAndSendTransaction", address, chain });
-    const signed = await partiallySignTransaction([account.keyPair], transaction);
-    const feePayerSignature = Object.values(signed.signatures)[0];
-    if (!feePayerSignature) throw new TestWalletError(ErrorCode.INTERNAL, "[solana-e2e] transaction has no signer slots");
-    const signature = base58.decode(feePayerSignature) as Signature;
-    logged.signature = signature;
-    if (this.mode === "rpc") {
-      try {
-        await this.send(signed, signature, options);
-      } catch (error) {
-        const failure = error instanceof TestWalletError ? error : new TestWalletError(ErrorCode.TRANSACTION_FAILED, String((error as Error)?.message ?? error));
-        logged.outcome = "failed";
-        logged.error = { code: failure.code, message: failure.message };
-        throw failure;
-      }
-    }
-    return { signature: toArray(feePayerSignature) };
+    return this.run({ method: "signAndSendTransaction", address, chain }, async (logged) => {
+      const signed = await partiallySignTransaction([account.keyPair], transaction);
+      const feePayerSignature = Object.values(signed.signatures)[0];
+      if (!feePayerSignature) throw new TestWalletError(ErrorCode.INTERNAL, "[solana-e2e] transaction has no signer slots");
+      const signature = base58.decode(feePayerSignature) as Signature;
+      logged.signature = signature;
+      if (this.mode === "rpc") await this.send(signed, signature, options);
+      return { signature: toArray(feePayerSignature) };
+    });
   }
 
   private async signIn(input: SolanaSignInInput, pageDomain: string) {
-    if (!this.connected) {
-      await this.approveOrThrow({ method: "connect", address: this.address });
-      this.connected = true;
-      this.trusted = true;
-      this.emitChange();
-    }
+    if (!this.connected) await this.connect(false);
     const account = this.active;
     const text = createSignInMessageText({ ...input, domain: input.domain ?? pageDomain, address: input.address ?? account.address });
-    await this.approveOrThrow({ method: "signIn", address: account.address, message: text });
-    const message = new TextEncoder().encode(text);
-    const signature = await signBytes(account.keyPair.privateKey, message);
-    return { address: account.address, signedMessage: toArray(message), signature: toArray(signature) };
+    return this.run({ method: "signIn", address: account.address, message: text }, async () => {
+      const message = new TextEncoder().encode(text);
+      const signature = await signBytes(account.keyPair.privateKey, message);
+      return { address: account.address, signedMessage: toArray(message), signature: toArray(signature) };
+    });
   }
 
   // ---------------------------------------------------------------- helpers
@@ -490,11 +481,31 @@ export class TestWallet {
     throw new TestWalletError(ErrorCode.TRANSACTION_FAILED, `[solana-e2e] ${signature} not ${commitment} within ${this.options.confirmTimeoutMs} ms`);
   }
 
-  private log(entry: Omit<WalletRequest, "id" | "at">): WalletRequest {
+  private log(entry: Omit<WalletRequest, "id" | "at">, notify = true): WalletRequest {
     const request: WalletRequest = { id: this.nextId++, at: Date.now(), ...entry };
     this.requests.push(request);
-    if (request.outcome !== "pending") this.notify(request);
+    if (notify) this.notify(request);
     return request;
+  }
+
+  /**
+   * Approve (or reject) a request, then do the work. Listeners hear about the request once it is
+   * settled, so `waitForRequest` sees the signature and the final outcome.
+   */
+  private async run<T>(entry: Omit<WalletRequest, "id" | "at" | "outcome">, work: (request: WalletRequest) => Promise<T>): Promise<T> {
+    const request = await this.approveOrThrow(entry);
+    try {
+      const result = await work(request);
+      this.notify(request);
+      return result;
+    } catch (error) {
+      const failure =
+        error instanceof TestWalletError ? error : new TestWalletError(ErrorCode.INTERNAL, String((error as Error)?.message ?? error));
+      request.outcome = "failed";
+      request.error = { code: failure.code, message: failure.message };
+      this.notify(request);
+      throw failure;
+    }
   }
 
   private notify(request: WalletRequest) {
@@ -510,14 +521,13 @@ export class TestWallet {
       this.log({ ...entry, outcome: directive!.kind === "reject" ? "rejected" : "failed", error: { code: error.code, message: error.message } });
       throw error;
     }
-    if (this.approvalMode === "auto") return this.log({ ...entry, outcome: "approved" });
+    if (this.approvalMode === "auto") return this.log({ ...entry, outcome: "approved" }, false);
     const request = this.log({ ...entry, outcome: "pending" });
     await new Promise<void>((resolve, reject) => {
       this.pendingQueue.push({
         request,
         resolve: () => {
           request.outcome = "approved";
-          this.notify(request);
           resolve();
         },
         reject: (error) => {
@@ -527,7 +537,6 @@ export class TestWallet {
           reject(error);
         },
       });
-      for (const listener of [...this.requestListeners]) listener(request);
     });
     return request;
   }
