@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getWallets } from "@wallet-standard/app";
 import { afterEach, expect, test } from "vitest";
-import { registerTestWallet, type RegisteredTestWallet } from "../src/index.js";
+import { registerTestWallet, TestWallet, type RegisteredTestWallet } from "../src/index.js";
 
 let registered: RegisteredTestWallet | undefined;
 afterEach(() => {
@@ -50,4 +50,11 @@ test("unregister removes the wallet", async () => {
   registered = await registerTestWallet({ name: "Gone Wallet" });
   registered.unregister();
   expect(getWallets().get().some((wallet) => wallet.name === "Gone Wallet")).toBe(false);
+});
+
+test("an existing TestWallet registers synchronously", async () => {
+  const wallet = await TestWallet.create({ name: "Sync Wallet" });
+  const pending = registerTestWallet(wallet);
+  expect(getWallets().get().some((candidate) => candidate.name === "Sync Wallet")).toBe(true);
+  registered = await pending;
 });
