@@ -6,6 +6,7 @@
  */
 import { address, createSolanaRpc, lamports, signature as toSignature } from "@solana/kit";
 import { registerTestWallet, type FeatureName, type TestWallet, type TestWalletOptions, type WalletMethod } from "@solana-e2e/wallet";
+import { jsonForCode } from "./code.js";
 import { mountDapp, type Recorder } from "./dapp.js";
 
 const DEFAULT_NAME = "Solana E2E Test Wallet";
@@ -131,7 +132,8 @@ function readSettings(): Settings {
   return { name, disabled, noV1: params.get("v1") === "off", rpcUrl: rpc && isLocalRpc(rpc) ? rpc : undefined };
 }
 
-const q = (value: string) => JSON.stringify(value);
+// Values go into the generated spec as string literals, escaped so they can never become code.
+const q = (value: string) => jsonForCode(value);
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
