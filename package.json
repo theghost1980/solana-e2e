@@ -13,7 +13,7 @@
     "release-check": "node scripts/release-check.mjs"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.12"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

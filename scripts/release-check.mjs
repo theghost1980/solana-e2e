@@ -60,6 +60,26 @@ for (const dir of PACKAGES) {
   console.log(`  ${files.length} files, ${(packed[0].size / 1024).toFixed(1)} kB packed`);
 }
 
+// npm on Windows drops optional packages that only other platforms need from package-lock.json
+// (this broke `npm ci` on Linux and macOS once). Every dependency named in the lock must have an entry.
+const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages;
+for (const [key, entry] of Object.entries(lock)) {
+  for (const dep of Object.keys(entry.dependencies ?? {})) {
+    let base = key;
+    let found = false;
+    for (;;) {
+      if (lock[`${base ? `${base}/` : ""}node_modules/${dep}`]) {
+        found = true;
+        break;
+      }
+      if (!base) break;
+      const cut = base.lastIndexOf("/node_modules/");
+      base = cut > 0 ? base.slice(0, cut) : "";
+    }
+    if (!found) fail("package-lock.json", `${key || "root"} needs ${dep}, which has no entry (regenerate the lock on Linux or add it back)`);
+  }
+}
+
 if (failures) {
   console.error(`\n${failures} problem(s). Fix them before publishing.`);
   process.exit(1);

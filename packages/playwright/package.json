@@ -18,7 +18,7 @@
   "repository": { "type": "git", "url": "git+https://github.com/theghost1980/solana-e2e.git", "directory": "packages/playwright" },
   "homepage": "https://github.com/theghost1980/solana-e2e/tree/main/packages/playwright#readme",
   "bugs": { "url": "https://github.com/theghost1980/solana-e2e/issues" },
-  "engines": { "node": ">=20.19" },
+  "engines": { "node": ">=22.12" },
   "dependencies": {
     "@solana-e2e/wallet": "^0.1.0"
   },

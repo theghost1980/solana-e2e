@@ -53,7 +53,7 @@
     "url": "https://github.com/theghost1980/solana-e2e/issues"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.12"
   },
   "dependencies": {
     "@solana/wallet-standard-features": "^1.3.0"
