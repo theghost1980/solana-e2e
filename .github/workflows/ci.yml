@@ -82,7 +82,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run build -w @solana-e2e/wallet
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       # Builds the site and tests the production build (the playground runs the wallet in the page).
       - run: npm run test:e2e -w site
       - uses: actions/upload-artifact@v4
