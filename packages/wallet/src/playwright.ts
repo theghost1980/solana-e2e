@@ -1,5 +1,6 @@
 import type { BrowserContext, Page } from "@playwright/test";
 import { TestWallet } from "./core.js";
+import { jsonForCode } from "./code.js";
 import { mountTestWallet } from "./mount.js";
 import type { TestWalletOptions } from "./types.js";
 
@@ -51,8 +52,8 @@ export async function installTestWallet(
   const exposed = await target.exposeFunction(binding, (method: string, payload: Record<string, unknown>) => wallet.handle(method, payload));
   installation.cleanup.push(disposer(exposed));
 
-  const info = JSON.stringify({ ...wallet.info, globalKey });
-  const content = `(${mountTestWallet.toString()})((method, payload) => window[${JSON.stringify(binding)}](method, payload), ${info});`;
+  const info = jsonForCode({ ...wallet.info, globalKey });
+  const content = `(${mountTestWallet.toString()})((method, payload) => window[${jsonForCode(binding)}](method, payload), ${info});`;
   if (late) {
     for (const page of pagesOf(target)) await page.evaluate(content);
   } else {

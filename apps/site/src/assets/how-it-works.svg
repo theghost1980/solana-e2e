@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="hiw-title hiw-desc" class="e2e-diagram">
+  <title id="hiw-title">How solana-e2e works</title>
+  <desc id="hiw-desc">Five steps from left to right. Your dApp, running in the browser page, finds the test wallet through Wallet Standard. The wallet shell in the page holds no keys and forwards each call over the Playwright bridge to a TestWallet running in the Node test process, where your test decides whether to approve, reject or fail the request. In mock mode the signature goes straight back to the dApp without touching the network. In rpc mode the signed transaction continues to a local Surfpool chain, is confirmed there, and the test can read what landed.</desc>
+  <style>
+    :root, svg {
+      --e2e-bg: transparent;
+      --e2e-fg: #1b1f24;
+      --e2e-muted: #6b7280;
+      --e2e-accent: #14F195;
+      --e2e-accent-2: #9945FF;
+      --e2e-box: rgba(127, 127, 127, 0.07);
+      --e2e-border: rgba(127, 127, 127, 0.45);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root, svg { --e2e-fg: #e6e8eb; --e2e-muted: #9aa3ad; }
+    }
+    .bg { fill: var(--e2e-bg); }
+    text { font-family: system-ui, sans-serif; fill: var(--e2e-fg); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; fill: var(--e2e-fg); }
+    .code-bg { fill: var(--e2e-box); stroke: none; }
+    .title { font-size: 15px; font-weight: 650; }
+    .cap { font-size: 12px; fill: var(--e2e-muted); }
+    .label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--e2e-muted); }
+    .legend { font-size: 11px; fill: var(--e2e-muted); }
+    .num { font-size: 11px; font-weight: 700; fill: var(--e2e-accent-2); }
+    .bracket { stroke: var(--e2e-border); stroke-width: 1; fill: none; }
+    .box { fill: var(--e2e-box); stroke: var(--e2e-border); stroke-width: 1.5; rx: 10; transition: stroke .25s, stroke-width .25s; }
+    .arrow { fill: none; stroke: var(--e2e-muted); stroke-width: 1.5; }
+    .arrow.req { marker-end: url(#m-req); }
+    .arrow.res { marker-end: url(#m-res); stroke-dasharray: none; }
+    .arrow.mock { stroke-dasharray: 5 4; marker-end: url(#m-req); }
+    .arrow.rpc-only { stroke: var(--e2e-accent-2); }
+    #m-req path, #m-res path { fill: var(--e2e-muted); }
+    .dot { fill: var(--e2e-accent); stroke: var(--e2e-fg); stroke-width: 1; stroke-opacity: .25; }
+    .step.active .box, .box.active { stroke: var(--e2e-accent); stroke-width: 2.5; }
+    .arrow.active { stroke: var(--e2e-accent); }
+
+    /* ---- animation: one 14 s cycle = rpc round trip (0–71 %) + mock loop (71–100 %) ---- */
+    #dot-rpc { offset-path: path("M115 165 H1075 V240 H115"); animation: rpc 14s linear infinite; }
+    #dot-mock { offset-path: path("M115 165 H835 V290 V336 H115 V290"); animation: mock 14s linear infinite; }
+    @keyframes rpc  { 0% { offset-distance: 0%; opacity: 1 } 70.9% { offset-distance: 100%; opacity: 1 } 71% { opacity: 0 } 100% { offset-distance: 100%; opacity: 0 } }
+    @keyframes mock { 0%, 70.9% { offset-distance: 0%; opacity: 0 } 71% { opacity: 1 } 100% { offset-distance: 100%; opacity: 1 } }
+    #arrow-mock { animation: mockarrow 14s linear infinite; }
+    @keyframes mockarrow { 0%, 70% { stroke: var(--e2e-muted) } 72%, 100% { stroke: var(--e2e-accent) } }
+    #step-1 .box { animation: hl1 14s linear infinite; }
+    #step-2 .box { animation: hl2 14s linear infinite; }
+    #step-3 .box { animation: hl3 14s linear infinite; }
+    #step-4 .box { animation: hl4 14s linear infinite; }
+    #step-5 .box { animation: hl5 14s linear infinite; }
+    @keyframes hl1 { 0%,2% {stroke:var(--e2e-accent);stroke-width:2.5} 4%,69% {stroke:var(--e2e-border);stroke-width:1.5} 70.5%,72.5% {stroke:var(--e2e-accent);stroke-width:2.5} 74.5%,97.5% {stroke:var(--e2e-border);stroke-width:1.5} 99%,100% {stroke:var(--e2e-accent);stroke-width:2.5} }
+    @keyframes hl2 { 0%,7% {stroke:var(--e2e-border);stroke-width:1.5} 8.5% {stroke:var(--e2e-accent);stroke-width:2.5} 10%,61% {stroke:var(--e2e-border);stroke-width:1.5} 62.5% {stroke:var(--e2e-accent);stroke-width:2.5} 64%,73.7% {stroke:var(--e2e-border);stroke-width:1.5} 75.2% {stroke:var(--e2e-accent);stroke-width:2.5} 76.7%,100% {stroke:var(--e2e-border);stroke-width:1.5} }
+    @keyframes hl3 { 0%,15.6% {stroke:var(--e2e-border);stroke-width:1.5} 17.1% {stroke:var(--e2e-accent);stroke-width:2.5} 18.6%,52.4% {stroke:var(--e2e-border);stroke-width:1.5} 53.9% {stroke:var(--e2e-accent);stroke-width:2.5} 55.4%,77.9% {stroke:var(--e2e-border);stroke-width:1.5} 79.4% {stroke:var(--e2e-accent);stroke-width:2.5} 80.9%,100% {stroke:var(--e2e-border);stroke-width:1.5} }
+    @keyframes hl4 { 0%,24.1% {stroke:var(--e2e-border);stroke-width:1.5} 25.6% {stroke:var(--e2e-accent);stroke-width:2.5} 27.1%,43.9% {stroke:var(--e2e-border);stroke-width:1.5} 45.4% {stroke:var(--e2e-accent);stroke-width:2.5} 46.9%,82.1% {stroke:var(--e2e-border);stroke-width:1.5} 83.6% {stroke:var(--e2e-accent);stroke-width:2.5} 85.1%,100% {stroke:var(--e2e-border);stroke-width:1.5} }
+    @keyframes hl5 { 0%,32.2% {stroke:var(--e2e-border);stroke-width:1.5} 34.2% {stroke:var(--e2e-accent);stroke-width:2.5} 36.2%,100% {stroke:var(--e2e-border);stroke-width:1.5} }
+
+    @supports not (offset-path: path("M0 0 H1")) { .dot { display: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .dot { display: none; }
+      .box, #arrow-mock { animation: none !important; }
+      .box { stroke: var(--e2e-border); stroke-width: 1.5; }
+    }
+  </style>
+  <defs>
+    <marker id="m-req" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="m-res" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="520"/>
+
+  <!-- section labels -->
+  <text class="label" x="240" y="62" text-anchor="middle">Browser page</text>
+  <path class="bracket" d="M20 72 V78 H460 V72"/>
+  <text class="label" x="720" y="62" text-anchor="middle">Node test process</text>
+  <path class="bracket" d="M500 72 V78 H940 V72"/>
+  <text class="label" x="1075" y="62" text-anchor="middle">Local chain</text>
+  <path class="bracket" d="M980 72 V78 H1170 V72"/>
+
+  <!-- step 1 -->
+  <g id="step-1" class="step">
+    <rect class="box" x="20" y="100" width="190" height="186"/>
+    <text class="num" x="34" y="124">1</text>
+    <text class="title" x="48" y="124">Your dApp</text>
+    <text class="cap" x="34" y="148">Finds the wallet through<tspan x="34" dy="16">Wallet Standard, like</tspan><tspan x="34" dy="16">any extension.</tspan></text>
+    <rect class="code-bg" x="28" y="204" width="174" height="72" rx="6"/>
+    <text class="code" xml:space="preserve" x="36" y="222">getWallets().get()<tspan x="36" dy="14">wallet.features["solana:</tspan><tspan x="36" dy="14">  signAndSendTransaction"]</tspan></text>
+  </g>
+  <!-- step 2 -->
+  <g id="step-2" class="step">
+    <rect class="box" x="260" y="100" width="190" height="186"/>
+    <text class="num" x="274" y="124">2</text>
+    <text class="title" x="288" y="124">Wallet shell in the page</text>
+    <text class="cap" x="274" y="148">A tiny Wallet Standard<tspan x="274" dy="16">object. It holds no keys;</tspan><tspan x="274" dy="16">it forwards each call.</tspan></text>
+    <rect class="code-bg" x="268" y="204" width="174" height="72" rx="6"/>
+    <text class="code" xml:space="preserve" x="276" y="222">window.dispatchEvent(<tspan x="276" dy="14">  new RegisterWalletEvent(</tspan><tspan x="276" dy="14">    ...))</tspan></text>
+  </g>
+  <!-- step 3 -->
+  <g id="step-3" class="step">
+    <rect class="box" x="500" y="100" width="190" height="186"/>
+    <text class="num" x="514" y="124">3</text>
+    <text class="title" x="528" y="124">Playwright bridge</text>
+    <text class="cap" x="514" y="148">Calls cross from the<tspan x="514" dy="16">browser to the test</tspan><tspan x="514" dy="16">process.</tspan></text>
+    <rect class="code-bg" x="508" y="204" width="174" height="72" rx="6"/>
+    <text class="code" xml:space="preserve" x="516" y="218">page.exposeFunction(binding,<tspan x="516" dy="13">  (method, payload) =></tspan><tspan x="516" dy="13">    wallet.handle(method,</tspan><tspan x="516" dy="13">      payload))</tspan></text>
+  </g>
+  <!-- step 4 -->
+  <g id="step-4" class="step">
+    <rect class="box" x="740" y="100" width="190" height="186"/>
+    <text class="num" x="754" y="124">4</text>
+    <text class="title" x="768" y="124">TestWallet in Node</text>
+    <text class="cap" x="754" y="148">Holds the throwaway keys.<tspan x="754" dy="16">Your test controls it.</tspan></text>
+    <rect class="code-bg" x="748" y="204" width="174" height="72" rx="6"/>
+    <text class="code" xml:space="preserve" x="756" y="222">wallet.rejectNext(<tspan x="756" dy="14">  { method: "signMessage" })</tspan></text>
+  </g>
+  <!-- step 5 -->
+  <g id="step-5" class="step">
+    <rect class="box" x="980" y="100" width="190" height="186"/>
+    <text class="num" x="994" y="124">5</text>
+    <text class="title" x="1008" y="124">Surfpool (local chain)</text>
+    <text class="cap" x="994" y="148">Only in rpc mode: the<tspan x="994" dy="16">signed transaction is</tspan><tspan x="994" dy="16">sent and confirmed.</tspan></text>
+    <rect class="code-bg" x="988" y="204" width="174" height="72" rx="6"/>
+    <text class="code" xml:space="preserve" x="996" y="222">await localnet<tspan x="996" dy="14">  .getTransaction(signature)</tspan></text>
+  </g>
+
+  <!-- request arrows (top lane) -->
+  <path id="arrow-1-2" class="arrow req" d="M212 165 H256"/>
+  <path id="arrow-2-3" class="arrow req" d="M452 165 H496"/>
+  <path id="arrow-3-4" class="arrow req" d="M692 165 H736"/>
+  <path id="arrow-4-5" class="arrow req rpc-only" d="M932 165 H976"/>
+  <text class="legend" x="954" y="154" text-anchor="middle" style="fill:var(--e2e-accent-2)">rpc</text>
+  <!-- response arrows (bottom lane) -->
+  <path id="arrow-5-4" class="arrow res rpc-only" d="M976 240 H932"/>
+  <path id="arrow-4-3" class="arrow res" d="M736 240 H692"/>
+  <path id="arrow-3-2" class="arrow res" d="M496 240 H452"/>
+  <path id="arrow-2-1" class="arrow res" d="M256 240 H212"/>
+  <!-- mock return -->
+  <path id="arrow-mock" class="arrow mock" d="M835 288 V336 H115 V292"/>
+  <text class="legend" x="475" y="352" text-anchor="middle">mock mode: no network — the signature goes straight back to the dApp</text>
+
+  <!-- legend -->
+  <g transform="translate(20 410)">
+    <path class="arrow req" d="M0 0 H40"/><text class="legend" x="50" y="4">request</text>
+    <path class="arrow res" d="M160 0 H120"/><text class="legend" x="170" y="4">response</text>
+    <path class="arrow mock" d="M250 0 H290"/><text class="legend" x="300" y="4">mock return</text>
+    <path class="arrow req rpc-only" d="M400 0 H440"/><text class="legend" x="450" y="4">rpc mode only</text>
+    <text class="legend" x="0" y="34">Playwright fixtures from @solana-e2e/playwright start one Surfpool per worker and fund the wallet before each test.</text>
+  </g>
+
+  <!-- travelling dots -->
+  <circle id="dot-rpc" class="dot" r="6"/>
+  <circle id="dot-mock" class="dot" r="6"/>
+</svg>
