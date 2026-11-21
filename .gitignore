@@ -6,3 +6,6 @@ test-results/
 playwright-report/
 .surfpool/
 *.log
+
+# private notes, drafts and backups: never pushed
+_docsprivatelocal/
