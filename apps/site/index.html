@@ -94,18 +94,19 @@ test("a transfer lands", async ({ page, wallet, localnet }) =&gt; {
       <section id="how-it-works">
         <h2>How it works</h2>
         <figure class="diagram" id="diagram">
-          <ol class="steps">
-            <li id="step-1"><strong>Your dApp</strong> finds the wallet through Wallet Standard, like any extension.
-              <code>getWallets().get()</code></li>
-            <li id="step-2"><strong>Wallet shell in the page.</strong> A tiny Wallet Standard object with no keys; it forwards each call.</li>
-            <li id="step-3"><strong>Playwright bridge.</strong> Calls cross from the browser to the test process.
-              <code>page.exposeFunction(…)</code></li>
-            <li id="step-4"><strong>TestWallet in Node.</strong> Holds the throwaway keys; your test controls it.
-              <code>wallet.rejectNext()</code></li>
-            <li id="step-5"><strong>Surfpool</strong>, only in <code>rpc</code> mode: the signed transaction is sent and confirmed.
-              <code>localnet.getTransaction(signature)</code></li>
-          </ol>
-          <figcaption>In <code>mock</code> mode the request stops at the TestWallet: it signs and answers, and nothing is sent.</figcaption>
+          <picture>
+            <source media="(max-width: 700px)" srcset="/how-it-works-mobile.svg" />
+            <img
+              src="/how-it-works.svg"
+              width="1200"
+              height="520"
+              alt="Five steps. Your dApp, in the browser page, finds the test wallet through Wallet Standard. The wallet shell in the page holds no keys and forwards each call over the Playwright bridge to a TestWallet in the Node test process, where your test approves, rejects or fails the request. In mock mode the signature goes straight back to the dApp. In rpc mode the signed transaction continues to a local Surfpool chain, is confirmed, and the test can read what landed."
+            />
+          </picture>
+          <figcaption>
+            In <code>mock</code> mode the request stops at the TestWallet: it signs and answers, and nothing is sent. In
+            <code>rpc</code> mode it continues to Surfpool. The playground above skips the Playwright bridge: the shell and the TestWallet both run inside your tab.
+          </figcaption>
         </figure>
       </section>
 
