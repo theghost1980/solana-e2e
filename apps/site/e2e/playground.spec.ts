@@ -71,7 +71,7 @@ test("wallet options: a wallet without signIn and with another name", async ({ p
 test("no request leaves the page", async ({ page }) => {
   const external: string[] = [];
   page.on("request", (request) => {
-    if (!request.url().startsWith("http://localhost:5180")) external.push(request.url());
+    if (!request.url().startsWith("http://localhost:5181")) external.push(request.url());
   });
   await page.goto("/");
   await dapp(page).getByRole("button", { name: "Solana E2E Test Wallet" }).click();
@@ -88,7 +88,7 @@ test("works under the Content-Security-Policy that Netlify serves", async ({ pag
   page.on("console", (message) => {
     if (/Content Security Policy/i.test(message.text())) violations.push(message.text());
   });
-  await page.route("http://localhost:5180/**", async (route) => {
+  await page.route("http://localhost:5181/**", async (route) => {
     const response = await route.fetch();
     await route.fulfill({ response, headers: { ...response.headers(), "content-security-policy": csp } });
   });

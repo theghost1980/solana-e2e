@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fbfbfd" />
+    <meta name="color-scheme" content="light dark" />
+    <script src="/theme.js"></script>
+    <title>{{metaTitle}}</title>
+    <meta name="description" content="{{metaDescription}}" />
+    <link rel="canonical" href="{{pageUrl}}" />
+    <link rel="alternate" hreflang="en" href="{{siteUrl}}/" />
+    <link rel="alternate" hreflang="es" href="{{siteUrl}}/es/" />
+    <link rel="alternate" hreflang="x-default" href="{{siteUrl}}/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="solana-e2e" />
+    <meta property="og:title" content="{{metaTitle}}" />
+    <meta property="og:description" content="{{metaDescription}}" />
+    <meta property="og:url" content="{{pageUrl}}" />
+    <meta property="og:image" content="{{ogImage}}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="{{ogLocale}}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{{skipLink}}</a>
+
+    <div class="lang-bar" id="lang-bar" hidden>
+      <span>{{langBarText}}</span>
+      <a class="lang-bar-go" href="{{otherUrl}}" data-lang-choice="{{otherLang}}">{{langBarButton}}</a>
+      <button type="button" class="lang-bar-close" aria-label="{{close}}" data-lang-choice="{{lang}}">×</button>
+    </div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="logo" href="./" aria-label="solana-e2e">{{logo}}</a>
+        <span class="version" title="@solana-e2e/wallet">v{{version}}</span>
+        <nav class="nav-desktop" aria-label="{{navLabel}}">
+          <a href="#playground">{{navPlayground}}</a>
+          <a href="#how-it-works">{{navHow}}</a>
+          <a href="https://github.com/theghost1980/solana-e2e">GitHub</a>
+        </nav>
+        <div class="header-actions">
+          <a class="btn btn-primary btn-small nav-desktop" href="#install">{{navGetStarted}}</a>
+          <a class="lang-switch" href="{{otherUrl}}" hreflang="{{otherLang}}" lang="{{otherLang}}" data-lang-choice="{{otherLang}}">{{otherLangLabel}}</a>
+          <button type="button" class="icon-btn theme-toggle" aria-label="{{themeToggle}}" aria-pressed="false">
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" /></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" /></svg>
+          </button>
+          <button type="button" class="icon-btn menu-open" aria-label="{{menuOpen}}" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+        </div>
+      </div>
+      <dialog class="menu-dialog" aria-label="{{navLabel}}">
+        <div class="menu-head">
+          <span class="logo">{{logo}}</span>
+          <button type="button" class="icon-btn menu-close" aria-label="{{close}}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <nav aria-label="{{navLabel}}">
+          <a href="#playground">{{navPlayground}}</a>
+          <a href="#how-it-works">{{navHow}}</a>
+          <a href="#install">{{navGetStarted}}</a>
+          <a href="https://github.com/theghost1980/solana-e2e">GitHub</a>
+          <a href="https://www.npmjs.com/package/@solana-e2e/wallet">npm</a>
+        </nav>
+      </dialog>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-text">
+            <p class="eyebrow">{{heroEyebrow}}</p>
+            <h1>{{heroTitle}}</h1>
+            <p class="lead">{{heroLead}}</p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary" href="#playground">{{heroCtaPlay}}</a>
+              <a class="btn btn-secondary" href="#install">{{heroCtaInstall}}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+            </div>
+            <div class="install" id="install">
+              <code>npm i -D @solana-e2e/wallet @solana-e2e/playwright</code>
+              <button type="button" class="copy-install icon-btn" aria-label="{{copyInstall}}" data-copy="npm i -D @solana-e2e/wallet @solana-e2e/playwright">
+                <svg class="icon-copy" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+                <svg class="icon-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+              </button>
+              <span class="visually-hidden" role="status" data-copy-status></span>
+            </div>
+          </div>
+
+          <figure class="puppet">
+            <figcaption class="visually-hidden">{{puppetAlt}}</figcaption>
+            <div class="puppet-code" aria-hidden="true">
+<pre><code><span class="k">test</span>(<span class="s">"user cancels"</span>, <span class="k">async</span> ({ page, wallet }) =&gt; {
+  <span class="k">await</span> page.goto(<span class="s">"/"</span>);
+  <span class="k">await</span> connect(page);
+<span class="line-hl">  wallet.rejectNext();</span>
+  <span class="k">await</span> send(page);
+  <span class="k">await</span> expect(toast).toBeVisible();
+});</code></pre>
+            </div>
+            <svg class="strings" viewBox="0 0 300 90" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M70 0 C 70 40, 110 50, 110 90" />
+              <path d="M150 0 C 150 45, 150 45, 150 90" />
+              <path d="M230 0 C 230 40, 190 50, 190 90" />
+            </svg>
+            <div class="popup" aria-hidden="true">
+              <div class="popup-head">
+                <img src="/brand/mark.svg" width="28" height="28" alt="" />
+                <strong>Solana E2E Test Wallet</strong>
+              </div>
+              <dl class="popup-rows">
+                <div><dt>From</dt><dd>alice · 9xQe…7kP2</dd></div>
+                <div><dt>Transfer</dt><dd>0.5 SOL</dd></div>
+                <div><dt>Network</dt><dd>localnet</dd></div>
+              </dl>
+              <div class="popup-actions">
+                <span class="fake-btn reject">Reject</span>
+                <span class="fake-btn approve">Approve</span>
+              </div>
+            </div>
+            <div class="toast" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg>
+              <span>User rejected the request · <strong>{{toastPassed}}</strong></span>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <section class="section" id="why">
+        <div class="container">
+          <h2>{{whyTitle}}</h2>
+          <p class="section-lead">{{whyText}}</p>
+          <table class="compare">
+            <thead>
+              <tr><th scope="col"><span class="visually-hidden">{{colFeature}}</span></th><th scope="col">{{colExtension}}</th><th scope="col">{{colMock}}</th><th scope="col">solana-e2e</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">{{rowHeadless}}</th><td data-label="{{colExtension}}">{{no}}</td><td data-label="{{colMock}}">{{yes}}</td><td data-label="solana-e2e">{{yes}}</td></tr>
+              <tr><th scope="row"><code>signAndSendTransaction</code>, <code>signIn</code></th><td data-label="{{colExtension}}">{{yes}}</td><td data-label="{{colMock}}">{{rarely}}</td><td data-label="solana-e2e">{{yes}}</td></tr>
+              <tr><th scope="row">{{rowControls}}</th><td data-label="{{colExtension}}">{{throughPopups}}</td><td data-label="{{colMock}}">{{ifYouWriteIt}}</td><td data-label="solana-e2e">{{oneLineEach}}</td></tr>
+              <tr><th scope="row">{{rowAccounts}}</th><td data-label="{{colExtension}}">{{yes}}</td><td data-label="{{colMock}}">{{rarely}}</td><td data-label="solana-e2e">{{yes}}</td></tr>
+              <tr><th scope="row">{{rowChain}}</th><td data-label="{{colExtension}}">{{needsSetup}}</td><td data-label="{{colMock}}">{{rarely}}</td><td data-label="solana-e2e">{{fixtureIncluded}}</td></tr>
+              <tr><th scope="row">{{rowMaintained}}</th><td data-label="{{colExtension}}">{{popupsChange}}</td><td data-label="{{colMock}}">{{copiedPerRepo}}</td><td data-label="solana-e2e">{{npmPackage}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="playground">
+        <div class="container">
+          <h2>{{playTitle}}</h2>
+          <p class="section-lead">{{playText}}</p>
+          <div class="play-grid">
+            <div class="card dapp" id="dapp" aria-label="Demo dApp"></div>
+            <div class="card panel" id="panel" aria-label="Test wallet controls"><p class="muted">{{playLoading}}</p></div>
+          </div>
+          <div class="card spec" id="spec"></div>
+        </div>
+      </section>
+
+      <section class="section" id="how-it-works">
+        <div class="container">
+          <h2>{{howTitle}}</h2>
+          <figure class="diagram">
+            <div class="diagram-host diagram-desktop" data-diagram="desktop" role="img" aria-label="{{howAlt}}"></div>
+            <div class="diagram-host diagram-mobile" data-diagram="mobile" role="img" aria-label="{{howAlt}}"></div>
+            <figcaption>{{howCaption}}</figcaption>
+          </figure>
+          <ol class="step-tabs" aria-label="{{howStepsLabel}}">
+            <li><button type="button" data-step="1"><span>1</span>{{step1}}</button></li>
+            <li><button type="button" data-step="2"><span>2</span>{{step2}}</button></li>
+            <li><button type="button" data-step="3"><span>3</span>{{step3}}</button></li>
+            <li><button type="button" data-step="4"><span>4</span>{{step4}}</button></li>
+            <li><button type="button" data-step="5"><span>5</span>{{step5}}</button></li>
+          </ol>
+          <p class="step-detail" aria-live="polite" data-step-detail>{{stepHint}}</p>
+          <template data-step-text="1">{{step1Text}}</template>
+          <template data-step-text="2">{{step2Text}}</template>
+          <template data-step-text="3">{{step3Text}}</template>
+          <template data-step-text="4">{{step4Text}}</template>
+          <template data-step-text="5">{{step5Text}}</template>
+        </div>
+      </section>
+
+      <section class="section" id="now-you-can">
+        <div class="container">
+          <h2>{{casesTitle}}</h2>
+          <ul class="cases">
+            <li class="card"><p>{{case1}}</p><code>wallet.rejectNext({ method: "signMessage" })</code></li>
+            <li class="card"><p>{{case2}}</p><code>wallet.failNext({ code: -32002, message: "Blockhash not found" })</code></li>
+            <li class="card"><p>{{case3}}</p><code>wallet.setApproval("manual"); … wallet.approve()</code></li>
+            <li class="card"><p>{{case4}}</p><code>wallet.switchAccount("bob")</code></li>
+            <li class="card"><p>{{case5}}</p><code>{ disabledFeatures: ["solana:signAndSendTransaction"] }</code></li>
+            <li class="card"><p>{{case6}}</p><code>{ supportedTransactionVersions: ["legacy", 0] }</code></li>
+            <li class="card"><p>{{case7}}</p><code>{ trusted: false }</code></li>
+            <li class="card"><p>{{case8}}</p><code>installTestWallet(page, { late: true })</code></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="modes">
+        <div class="container">
+          <h2>{{modesTitle}}</h2>
+          <div class="cards-2">
+            <article class="card">
+              <h3><code>mock</code></h3>
+              <p>{{modeMock}}</p>
+              <pre class="code"><code>const { wallet } = await registerTestWallet({ accounts: ["alice"] });</code></pre>
+            </article>
+            <article class="card">
+              <h3><code>rpc</code></h3>
+              <p>{{modeRpc}}</p>
+              <pre class="code"><code>const tx = await localnet.getTransaction(signature);
+expect(tx.logs).toContain("Program log: hello");</code></pre>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="ci">
+        <div class="container narrow">
+          <h2>{{ciTitle}}</h2>
+          <p>{{ciText}}</p>
+          <h3>{{limitsTitle}}</h3>
+          <ul class="limits">
+            <li>{{limit1}}</li>
+            <li>{{limit2}}</li>
+            <li>{{limit3}}</li>
+            <li>{{limit4}}</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p class="footer-links">
+          <a href="https://github.com/theghost1980/solana-e2e">GitHub</a>
+          <a href="https://www.npmjs.com/package/@solana-e2e/wallet">@solana-e2e/wallet</a>
+          <a href="https://www.npmjs.com/package/@solana-e2e/playwright">@solana-e2e/playwright</a>
+          <a href="https://github.com/theghost1980/solana-e2e/issues/new/choose">{{footerIssue}}</a>
+          <span>MIT</span>
+        </p>
+        <p class="credits">
+          {{madeBy}} <strong>Saturno Mangieri</strong> ·
+          <a href="https://www.linkedin.com/in/saturno-mangieri/" rel="me noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM9.5 9.5h3.8v1.6h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.6 4.8 6V21h-4v-5.2c0-1.2 0-2.9-1.8-2.9s-2.1 1.4-2.1 2.8V21h-4z" /></svg>LinkedIn</a> ·
+          <a href="https://github.com/theghost1980" rel="me noopener" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z" /></svg>GitHub</a>
+        </p>
+        <p class="muted small">{{attribution}}</p>
+      </div>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
