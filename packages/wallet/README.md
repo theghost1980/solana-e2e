@@ -36,7 +36,22 @@ test("connect and sign", async ({ page }) => {
 });
 ```
 
-Pass a `BrowserContext` instead of a `Page` to cover every page and popup in the context.
+Pass a `BrowserContext` instead of a `Page` to cover every page and popup in the context. Call
+`installTestWallet` several times (with different `name`s) to test a wallet picker.
+
+**Late injection.** Real extensions sometimes announce themselves after the dApp has rendered. To
+test that path, load the page first and pass `late: true`:
+
+```ts
+await page.goto("/");
+await installTestWallet(page, { name: "Late Wallet", late: true }); // registers into the loaded page
+```
+
+A late wallet is not re-injected after a navigation or into pages opened later.
+
+**Uninstall.** `uninstallTestWallet(wallet)` unregisters the wallet from open pages and stops pushing
+account changes. On Playwright 1.56 or later it also removes the init script, so reloads come back
+without it. Account updates stop by themselves when the page or context closes.
 
 ## Vitest + jsdom
 
@@ -106,7 +121,13 @@ And to observe it:
 | `signer(index?)` | a `@solana/kit` `KeyPairSigner` for the account, to fund or sign from the test |
 
 Errors reach the dApp as `Error` objects with a numeric `code`: 4001 rejected, 4100 not authorized,
-4200 unsupported, -32002 transaction failed, -32603 internal.
+4200 unsupported method, 4201 unsupported transaction version, -32002 transaction failed, -32603
+internal.
+
+Like a real wallet, `signTransaction` and `signAndSendTransaction` refuse a transaction whose version
+is not in `supportedTransactionVersions`. `signAndSendTransaction` also refuses one where the wallet
+account is not the fee payer, or where other signers are still missing. Sign those with
+`signTransaction` and send them yourself.
 
 ## How it works
 
@@ -114,6 +135,20 @@ Errors reach the dApp as `Error` objects with a numeric `code`: 4001 rejected, 4
 the Node test process; the page gets a small Wallet Standard shell (via `addInitScript`) that
 forwards each call through `exposeFunction`. In jsdom the same shell is mounted in-process. Both
 paths serialise payloads as JSON, so they behave the same.
+
+## Limitations
+
+- **The Playwright transport is a Node bridge.** Keys stay in the test process and the page calls
+  back through `exposeFunction`, so the injected wallet does not work as is in Cypress, Storybook or a
+  page opened outside Playwright. An in-page build with no dependencies is on the roadmap for 0.2.
+- **Only Chromium has been tested** so far. Firefox and WebKit should work, but are not in CI yet.
+- **One visible account at a time**, as in Phantom: the dApp sees the active account, and
+  `switchAccount` swaps it and emits `change`.
+- **Silent connect** (`autoConnect`) never prompts, so `rejectNext({ method: "connect" })` and manual
+  approval only apply to an explicit connect. An explicit connect while already connected goes through
+  approval again.
+- With `@solana-e2e/playwright`, the WebSocket URL of an existing chain passed as `rpcUrl` is
+  inferred as the RPC port + 1 unless you pass `wsUrl`.
 
 ## License
 
