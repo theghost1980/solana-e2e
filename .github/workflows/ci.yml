@@ -8,9 +8,25 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Fails fast when package-lock.json misses packages for another platform (it happened once:
+  # a lock written on Windows lacked @emnapi/* and broke npm ci on Linux and macOS).
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+
   unit:
     name: unit (${{ matrix.os }}, node ${{ matrix.node }})
+    needs: lockfile
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -27,9 +43,11 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - run: npm run release-check
 
   e2e-mock:
     name: e2e mock mode (${{ matrix.os }})
+    needs: lockfile
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -54,6 +72,7 @@ jobs:
 
   e2e-localnet:
     name: e2e rpc mode on Surfpool (${{ matrix.os }})
+    needs: lockfile
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
