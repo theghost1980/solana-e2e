@@ -1,22 +1,124 @@
 /**
  * The test wallet's control panel and the spec generator. The wallet is the real
- * @solana-e2e/wallet, registered in this page with registerTestWallet() in mock mode; the panel calls
- * the same methods a Playwright test would call, and every action becomes a line of the spec.
+ * @solana-e2e/wallet, registered in this page with registerTestWallet(): in mock mode by default, or
+ * in rpc mode against a chain on the visitor's own machine. The panel calls the same methods a
+ * Playwright test would call, and every action becomes a line of the spec.
  */
+import { address, createSolanaRpc, lamports, signature as toSignature } from "@solana/kit";
 import { registerTestWallet, type FeatureName, type TestWallet, type TestWalletOptions, type WalletMethod } from "@solana-e2e/wallet";
 import { mountDapp, type Recorder } from "./dapp.js";
 
 const DEFAULT_NAME = "Solana E2E Test Wallet";
+const DEFAULT_RPC = "http://127.0.0.1:8899";
 const OPTIONAL_FEATURES: { feature: FeatureName; label: string }[] = [
   { feature: "solana:signAndSendTransaction", label: "signAndSendTransaction" },
   { feature: "solana:signIn", label: "signIn (SIWS)" },
 ];
 const METHODS: WalletMethod[] = ["connect", "signMessage", "signIn", "signAndSendTransaction"];
 
+const UI = {
+  en: {
+    modeMock: "mock mode · in this page",
+    modeRpc: "rpc mode · your local chain",
+    connected: "Connected",
+    yes: "yes",
+    no: "no",
+    active: "Active account",
+    nextFor: "Next request for",
+    anyMethod: "any method",
+    rejectNext: "Reject next",
+    failNext: "Fail next",
+    switchAccount: "Switch account",
+    disconnect: "Disconnect from wallet",
+    manual: "Manual approval",
+    waiting: "is waiting",
+    approve: "Approve",
+    reject: "Reject",
+    options: "Wallet options (reloads the playground)",
+    walletName: "Wallet name",
+    v1: "Transaction version 1",
+    network: "Network",
+    netMock: "mock: sign, send nothing",
+    netRpc: "rpc: send to a chain on this computer",
+    rpcUrl: "RPC URL",
+    rpcHelp: "Start one with <code>surfpool start</code>. Only localhost addresses are allowed. Your browser may ask you to allow access to your local network.",
+    rpcBadUrl: "Only http://localhost and 127.0.0.1 addresses are allowed.",
+    apply: "Apply",
+    fund: "Fund alice and bob (1 SOL each)",
+    funding: "Requesting airdrops…",
+    funded: "Funded",
+    unreachable: (url: string) =>
+      `Could not reach ${url}. Is Surfpool running? If your browser asked for access to your local network, allow it and press Fund again.`,
+    log: "Request log",
+    noRequests: "No requests yet. Connect from the dApp.",
+    specTitle: "Your test, written for you",
+    copy: "Copy spec",
+    copied: "Copied",
+    selectToCopy: "Select the text to copy",
+    restart: "Start over",
+    noCrypto: (message: string) =>
+      `This browser cannot create Ed25519 keys with WebCrypto, which the test wallet needs (${message}). Try a recent Chrome, Edge, Firefox or Safari.`,
+  },
+  es: {
+    modeMock: "modo mock · en esta página",
+    modeRpc: "modo rpc · tu cadena local",
+    connected: "Conectado",
+    yes: "sí",
+    no: "no",
+    active: "Cuenta activa",
+    nextFor: "Siguiente petición de",
+    anyMethod: "cualquier método",
+    rejectNext: "Rechazar la siguiente",
+    failNext: "Hacer fallar la siguiente",
+    switchAccount: "Cambiar de cuenta",
+    disconnect: "Desconectar desde el wallet",
+    manual: "Aprobación manual",
+    waiting: "está esperando",
+    approve: "Aprobar",
+    reject: "Rechazar",
+    options: "Opciones del wallet (recarga el playground)",
+    walletName: "Nombre del wallet",
+    v1: "Transacciones versión 1",
+    network: "Red",
+    netMock: "mock: firma, no envía nada",
+    netRpc: "rpc: envía a una cadena en este ordenador",
+    rpcUrl: "URL del RPC",
+    rpcHelp: "Arranca una con <code>surfpool start</code>. Solo se permiten direcciones localhost. Puede que tu navegador te pida permiso para acceder a tu red local.",
+    rpcBadUrl: "Solo se permiten direcciones http://localhost y 127.0.0.1.",
+    apply: "Aplicar",
+    fund: "Dar fondos a alice y bob (1 SOL cada uno)",
+    funding: "Pidiendo airdrops…",
+    funded: "Con fondos",
+    unreachable: (url: string) =>
+      `No se pudo conectar con ${url}. ¿Está Surfpool en marcha? Si el navegador te pidió acceso a tu red local, permítelo y vuelve a pulsar el botón de fondos.`,
+    log: "Registro de peticiones",
+    noRequests: "Aún no hay peticiones. Conecta desde la dApp.",
+    specTitle: "Tu test, escrito para ti",
+    copy: "Copiar spec",
+    copied: "Copiado",
+    selectToCopy: "Selecciona el texto para copiarlo",
+    restart: "Empezar de nuevo",
+    noCrypto: (message: string) =>
+      `Este navegador no puede crear claves Ed25519 con WebCrypto, que el wallet de pruebas necesita (${message}). Prueba con un Chrome, Edge, Firefox o Safari recientes.`,
+  },
+};
+const t = UI[document.documentElement.lang === "es" ? "es" : "en"];
+
 interface Settings {
   name: string;
   disabled: FeatureName[];
   noV1: boolean;
+  rpcUrl?: string;
+}
+
+/** Only addresses on the visitor's own machine: the page must never send transactions anywhere else. */
+export function isLocalRpc(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && ["localhost", "127.0.0.1"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function readSettings(): Settings {
@@ -25,7 +127,8 @@ function readSettings(): Settings {
   const disabled = (params.get("disable") ?? "")
     .split(",")
     .filter((value): value is FeatureName => OPTIONAL_FEATURES.some((item) => item.feature === value));
-  return { name, disabled, noV1: params.get("v1") === "off" };
+  const rpc = params.get("rpc");
+  return { name, disabled, noV1: params.get("v1") === "off", rpcUrl: rpc && isLocalRpc(rpc) ? rpc : undefined };
 }
 
 const q = (value: string) => JSON.stringify(value);
@@ -39,6 +142,7 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
     accounts: ["alice", "bob"],
     disabledFeatures: settings.disabled,
     ...(settings.noV1 ? { supportedTransactionVersions: ["legacy", 0] } : {}),
+    ...(settings.rpcUrl ? { mode: "rpc", rpcUrl: settings.rpcUrl, confirmTimeoutMs: 20_000 } : {}),
   };
 
   // ------------------------------------------------------------------ the spec being written
@@ -65,11 +169,13 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
     if (settings.name !== DEFAULT_NAME) parts.push(`name: ${q(settings.name)}`);
     if (settings.disabled.length) parts.push(`disabledFeatures: [${settings.disabled.map(q).join(", ")}]`);
     if (settings.noV1) parts.push(`supportedTransactionVersions: ["legacy", 0]`);
+    if (settings.rpcUrl) parts.push(`mode: "rpc", rpcUrl: ${q(settings.rpcUrl)}`);
     return `{ ${parts.join(", ")} }`;
   }
 
   function specText(): string {
     const body = [
+      ...(settings.rpcUrl ? [`// With @solana-e2e/playwright, the wallet and localnet fixtures do this setup and fund the accounts.`] : []),
       `const wallet = await installTestWallet(page, ${installOptions()});`,
       `await page.goto("/");`,
       ...steps,
@@ -93,10 +199,10 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
 
   specRoot.innerHTML = `
     <div class="spec-head">
-      <h3>Your test, written for you</h3>
+      <h3>${t.specTitle}</h3>
       <div>
-        <button type="button" data-spec="copy">Copy spec</button>
-        <button type="button" data-spec="restart" class="secondary">Start over</button>
+        <button type="button" data-spec="copy">${t.copy}</button>
+        <button type="button" data-spec="restart" class="secondary">${t.restart}</button>
       </div>
     </div>
     <pre class="code" tabindex="0"><code data-testid="spec"></code></pre>`;
@@ -108,11 +214,11 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
     const button = event.currentTarget as HTMLButtonElement;
     try {
       await navigator.clipboard.writeText(specText());
-      button.textContent = "Copied";
+      button.textContent = t.copied;
     } catch {
-      button.textContent = "Select the text to copy";
+      button.textContent = t.selectToCopy;
     }
-    setTimeout(() => (button.textContent = "Copy spec"), 1500);
+    setTimeout(() => (button.textContent = t.copy), 1500);
   };
   specRoot.querySelector<HTMLButtonElement>("[data-spec=restart]")!.onclick = () => location.reload();
 
@@ -120,58 +226,76 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
   try {
     ({ wallet } = await registerTestWallet(options));
   } catch (error) {
-    panelRoot.innerHTML = `<p class="warn">This browser cannot create Ed25519 keys with WebCrypto, which the test wallet needs
-      (${escapeHtml(error instanceof Error ? error.message : String(error))}). Try a recent Chrome, Edge, Firefox or Safari.</p>`;
-    mountDapp(dappRoot, recorder);
+    panelRoot.innerHTML = `<p class="warn">${escapeHtml(t.noCrypto(error instanceof Error ? error.message : String(error)))}
+      <a href="https://github.com/theghost1980/solana-e2e#readme">README</a></p>`;
+    mountDapp(dappRoot, recorder, {});
     renderSpec();
     return;
   }
   const w = wallet;
-  mountDapp(dappRoot, recorder);
+  mountDapp(dappRoot, recorder, { rpcUrl: settings.rpcUrl });
 
   // ------------------------------------------------------------------ the panel
   panelRoot.innerHTML = `
     <div class="panel-head">
       <strong>${escapeHtml(w.info.name)}</strong>
-      <span class="badge">mock mode · in this page</span>
+      <span class="badge">${settings.rpcUrl ? t.modeRpc : t.modeMock}</span>
     </div>
     <dl class="panel-state" data-testid="wallet-state"></dl>
 
+    ${
+      settings.rpcUrl
+        ? `<div class="panel-group">
+            <button type="button" data-control="fund">${t.fund}</button>
+            <p class="rpc-note" data-testid="rpc-status" role="status"></p>
+          </div>`
+        : ""
+    }
+
     <div class="panel-group">
-      <label>Next request for
+      <label>${t.nextFor}
         <select data-control="method">
-          <option value="">any method</option>
+          <option value="">${t.anyMethod}</option>
           ${METHODS.map((method) => `<option value="${method}">${method}</option>`).join("")}
         </select>
       </label>
       <div class="row">
-        <button type="button" data-control="reject">Reject next</button>
-        <button type="button" data-control="fail">Fail next</button>
+        <button type="button" data-control="reject">${t.rejectNext}</button>
+        <button type="button" data-control="fail">${t.failNext}</button>
       </div>
     </div>
 
     <div class="panel-group row">
-      <button type="button" data-control="switch">Switch account</button>
-      <button type="button" data-control="disconnect">Disconnect from wallet</button>
+      <button type="button" data-control="switch">${t.switchAccount}</button>
+      <button type="button" data-control="disconnect">${t.disconnect}</button>
     </div>
 
     <div class="panel-group">
-      <label class="check"><input type="checkbox" data-control="manual" /> Manual approval</label>
+      <label class="check"><input type="checkbox" data-control="manual" /> ${t.manual}</label>
       <ul class="pending" data-testid="pending"></ul>
     </div>
 
-    <details class="panel-group">
-      <summary>Wallet options (reloads the playground)</summary>
-      <label>Wallet name <input data-option="name" maxlength="40" value="${escapeHtml(settings.name)}" /></label>
+    <details class="panel-group" ${settings.rpcUrl ? "open" : ""}>
+      <summary>${t.options}</summary>
+      <label>${t.walletName} <input data-option="name" maxlength="40" value="${escapeHtml(settings.name)}" /></label>
       ${OPTIONAL_FEATURES.map(
         ({ feature, label }) =>
           `<label class="check"><input type="checkbox" data-option="feature" value="${feature}" ${settings.disabled.includes(feature) ? "" : "checked"} /> ${label}</label>`,
       ).join("")}
-      <label class="check"><input type="checkbox" data-option="v1" ${settings.noV1 ? "" : "checked"} /> Transaction version 1</label>
-      <button type="button" data-option="apply" class="secondary">Apply</button>
+      <label class="check"><input type="checkbox" data-option="v1" ${settings.noV1 ? "" : "checked"} /> ${t.v1}</label>
+      <label>${t.network}
+        <select data-option="network">
+          <option value="mock" ${settings.rpcUrl ? "" : "selected"}>${t.netMock}</option>
+          <option value="rpc" ${settings.rpcUrl ? "selected" : ""}>${t.netRpc}</option>
+        </select>
+      </label>
+      <label>${t.rpcUrl} <input data-option="rpc" inputmode="url" value="${escapeHtml(settings.rpcUrl ?? DEFAULT_RPC)}" /></label>
+      <p class="rpc-note">${t.rpcHelp}</p>
+      <p class="rpc-note warn" data-testid="rpc-error" hidden>${t.rpcBadUrl}</p>
+      <button type="button" data-option="apply" class="secondary">${t.apply}</button>
     </details>
 
-    <h4>Request log <small>(<code>wallet.requests</code>)</small></h4>
+    <h4>${t.log} <small>(<code>wallet.requests</code>)</small></h4>
     <div class="log-wrap"><table class="log">
       <thead><tr><th>#</th><th>method</th><th>outcome</th><th>detail</th></tr></thead>
       <tbody data-testid="request-log"></tbody>
@@ -206,6 +330,29 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
     record(`wallet.setApproval(${q(mode)});`);
   };
 
+  if (settings.rpcUrl) {
+    const rpc = createSolanaRpc(settings.rpcUrl);
+    const status = panelRoot.querySelector<HTMLElement>("[data-testid=rpc-status]")!;
+    control("fund").onclick = async () => {
+      status.textContent = t.funding;
+      try {
+        for (const account of w.accounts) {
+          const sig = await rpc.requestAirdrop(address(account.address), lamports(1_000_000_000n)).send();
+          for (let i = 0; i < 60; i++) {
+            const { value } = await rpc.getSignatureStatuses([toSignature(sig)]).send();
+            if (value[0]?.confirmationStatus === "confirmed" || value[0]?.confirmationStatus === "finalized") break;
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+        }
+        const balances = await Promise.all(w.accounts.map(async (account) => (await rpc.getBalance(address(account.address)).send()).value));
+        status.textContent = `${t.funded}: ${w.accounts.map((account, i) => `${account.label} ${Number(balances[i]) / 1e9} SOL`).join(" · ")}`;
+      } catch (error) {
+        console.error("[playground] airdrop failed", error);
+        status.textContent = t.unreachable(settings.rpcUrl!);
+      }
+    };
+  }
+
   panelRoot.querySelector<HTMLButtonElement>("[data-option=apply]")!.onclick = () => {
     const params = new URLSearchParams();
     const name = panelRoot.querySelector<HTMLInputElement>("[data-option=name]")!.value.trim();
@@ -213,6 +360,14 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
     const disabled = [...panelRoot.querySelectorAll<HTMLInputElement>("[data-option=feature]")].filter((box) => !box.checked).map((box) => box.value);
     if (disabled.length) params.set("disable", disabled.join(","));
     if (!panelRoot.querySelector<HTMLInputElement>("[data-option=v1]")!.checked) params.set("v1", "off");
+    if (panelRoot.querySelector<HTMLSelectElement>("[data-option=network]")!.value === "rpc") {
+      const rpcUrl = panelRoot.querySelector<HTMLInputElement>("[data-option=rpc]")!.value.trim();
+      if (!isLocalRpc(rpcUrl)) {
+        panelRoot.querySelector<HTMLElement>("[data-testid=rpc-error]")!.hidden = false;
+        return;
+      }
+      params.set("rpc", rpcUrl);
+    }
     const query = params.toString();
     location.href = `${location.pathname}${query ? `?${query}` : ""}#playground`;
   };
@@ -230,16 +385,16 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
     snapshot = next;
 
     stateEl.innerHTML = `
-      <dt>Connected</dt><dd>${w.isConnected ? "yes" : "no"}</dd>
-      <dt>Active account</dt><dd><strong>${escapeHtml(active.label ?? "")}</strong> <code title="${active.address}">${active.address.slice(0, 8)}…</code></dd>`;
+      <dt>${t.connected}</dt><dd>${w.isConnected ? t.yes : t.no}</dd>
+      <dt>${t.active}</dt><dd><strong>${escapeHtml(active.label ?? "")}</strong> <code title="${active.address}">${active.address.slice(0, 8)}…</code></dd>`;
 
     pendingEl.replaceChildren(
       ...w.pending.map((request) => {
         const item = document.createElement("li");
-        item.innerHTML = `<span><code>${request.method}</code> is waiting</span>`;
+        item.innerHTML = `<span><code>${request.method}</code> ${t.waiting}</span>`;
         const approve = document.createElement("button");
         approve.type = "button";
-        approve.textContent = "Approve";
+        approve.textContent = t.approve;
         approve.onclick = () => {
           record(`await expect.poll(() => wallet.pending.length).toBeGreaterThan(0);`);
           w.approve();
@@ -248,7 +403,7 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
         const reject = document.createElement("button");
         reject.type = "button";
         reject.className = "secondary";
-        reject.textContent = "Reject";
+        reject.textContent = t.reject;
         reject.onclick = () => {
           record(`await expect.poll(() => wallet.pending.length).toBeGreaterThan(0);`);
           w.reject();
@@ -271,7 +426,7 @@ export async function mountPlayground(dappRoot: HTMLElement, panelRoot: HTMLElem
           return row;
         }),
     );
-    if (!w.requests.length) logEl.innerHTML = `<tr><td colspan="4" class="muted">No requests yet. Connect from the dApp.</td></tr>`;
+    if (!w.requests.length) logEl.innerHTML = `<tr><td colspan="4" class="muted">${t.noRequests}</td></tr>`;
     renderSpec();
   }
 

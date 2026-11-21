@@ -8,6 +8,7 @@ import {
   appendTransactionMessageInstruction,
   blockhash,
   compileTransaction,
+  createSolanaRpc,
   createTransactionMessage,
   getBase58Decoder,
   getTransactionEncoder,
@@ -33,7 +34,8 @@ const base58 = getBase58Decoder();
 
 const short = (value: string) => `${value.slice(0, 6)}…${value.slice(-6)}`;
 
-export function mountDapp(root: HTMLElement, recorder: Recorder): void {
+export function mountDapp(root: HTMLElement, recorder: Recorder, { rpcUrl }: { rpcUrl?: string }): void {
+  const rpc = rpcUrl ? createSolanaRpc(rpcUrl) : undefined;
   root.innerHTML = `
     <div class="dapp-bar">
       <strong>Demo dApp</strong>
@@ -140,10 +142,12 @@ export function mountDapp(root: HTMLElement, recorder: Recorder): void {
     "send-memo": {
       label: "Send memo",
       async run() {
+        // Mock mode needs no network: any blockhash is fine. In rpc mode the chain wants a real one.
+        const lifetime = rpc ? (await rpc.getLatestBlockhash().send()).value : LIFETIME;
         const message = pipe(
           createTransactionMessage({ version: 0 }),
           (m) => setTransactionMessageFeePayer(account!.address as Address, m),
-          (m) => setTransactionMessageLifetimeUsingBlockhash(LIFETIME, m),
+          (m) => setTransactionMessageLifetimeUsingBlockhash(lifetime, m),
           (m) =>
             appendTransactionMessageInstruction(
               { programAddress: MEMO_PROGRAM, accounts: [{ address: account!.address as Address, role: 3 }], data: new TextEncoder().encode("gm") },
@@ -155,7 +159,8 @@ export function mountDapp(root: HTMLElement, recorder: Recorder): void {
         const signAndSend = feature<SignAndSend>("solana:signAndSendTransaction");
         if (!signAndSend) throw new Error("this wallet cannot sign and send transactions");
         const [output] = await signAndSend.signAndSendTransaction({ account, chain: CHAIN, transaction });
-        return `Memo signed (mock mode, not sent): ${short(base58.decode(output!.signature))}`;
+        const sig = base58.decode(output!.signature);
+        return rpc ? `Memo landed on your local chain: ${short(sig)}` : `Memo signed (mock mode, not sent): ${short(sig)}`;
       },
     },
     disconnect: {

@@ -98,3 +98,55 @@ test("works under the Content-Security-Policy that Netlify serves", async ({ pag
   await expect(status(page)).toContainText("Message signed");
   expect(violations).toEqual([]);
 });
+
+test("rpc mode only accepts addresses on this machine", async ({ page }) => {
+  await page.goto("/?rpc=https://api.mainnet-beta.solana.com");
+  // An outside address in the URL is ignored: the wallet stays in mock mode.
+  await expect(panel(page).getByText("mock mode · in this page")).toBeVisible();
+  await panel(page).getByText("Wallet options").click();
+  await panel(page).getByLabel("Network").selectOption("rpc");
+  await panel(page).getByLabel("RPC URL").fill("https://example.com:8899");
+  await panel(page).getByRole("button", { name: "Apply" }).click();
+  await expect(panel(page).getByTestId("rpc-error")).toBeVisible();
+  expect(new URL(page.url()).search).toBe("?rpc=https://api.mainnet-beta.solana.com");
+});
+
+test.describe("rpc mode against a real Surfpool", () => {
+  test.skip(!process.env.SURFPOOL_BIN, "set SURFPOOL_BIN to run");
+
+  test("funds, signs, sends and the memo lands, under the Netlify CSP", async ({ page, context }) => {
+    // What a visitor does when the browser asks to let the site reach their local network.
+    await context.grantPermissions(["local-network-access"]);
+    const { startLocalnet } = await import("@solana-e2e/playwright");
+    const { readFileSync } = await import("node:fs");
+    const localnet = await startLocalnet();
+    try {
+      const toml = readFileSync(new URL("../../../netlify.toml", import.meta.url), "utf8");
+      const csp = /Content-Security-Policy = "([^"]+)"/.exec(toml)![1]!;
+      const violations: string[] = [];
+      page.on("console", (message) => {
+        if (/Content Security Policy/i.test(message.text())) violations.push(message.text());
+      });
+      await page.route("http://localhost:5181/**", async (route) => {
+        const response = await route.fetch();
+        await route.fulfill({ response, headers: { ...response.headers(), "content-security-policy": csp } });
+      });
+
+      await page.goto(`/?rpc=${encodeURIComponent(localnet.rpcUrl)}`);
+      await expect(panel(page).getByText("rpc mode · your local chain")).toBeVisible();
+      await panel(page).getByRole("button", { name: /Fund alice and bob/ }).click();
+      await expect(panel(page).getByTestId("rpc-status")).toContainText("Funded: alice 1 SOL · bob 1 SOL", { timeout: 30_000 });
+
+      await dapp(page).getByRole("button", { name: "Solana E2E Test Wallet" }).click();
+      await dapp(page).getByRole("button", { name: "Send memo" }).click();
+      await expect(status(page)).toContainText("Memo landed on your local chain", { timeout: 30_000 });
+
+      const log = page.getByTestId("request-log").locator("tr").first();
+      await expect(log).toContainText("signAndSendTransaction");
+      await expect(spec(page)).toContainText('mode: "rpc"');
+      expect(violations).toEqual([]);
+    } finally {
+      await localnet.stop();
+    }
+  });
+});
