@@ -11,6 +11,8 @@ Your dApp discovers it exactly as it discovers Phantom or Solflare, but your tes
 - **Runs in two places**: injected into Playwright pages (keys stay in Node), or registered in-process for Vitest + jsdom.
 - No browser extension, no seed phrase, no popups.
 
+Website and live playground: https://solana-e2e.saturnomangieri.com
+
 ## Install
 
 ```bash

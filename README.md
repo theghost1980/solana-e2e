@@ -2,6 +2,8 @@
 
 End-to-end testing for Solana dApps without browser extensions.
 
+**[Website and live playground](https://solana-e2e.saturnomangieri.com)** — try the test wallet in your browser and get the Playwright spec for what you click.
+
 | Package | What it does |
 |---|---|
 | [`@solana-e2e/wallet`](packages/wallet) | A Wallet Standard test wallet. `mock` mode signs without a network; `rpc` mode signs and sends to a local chain. Works in Playwright (injected) and Vitest/jsdom (registered). Your test approves, rejects, fails, switches accounts. |

@@ -4,6 +4,8 @@ Playwright fixtures for Solana dApps: a fresh [Surfpool](https://github.com/sola
 chain per worker, and a funded [`@solana-e2e/wallet`](../wallet) test wallet per test that signs
 and sends to it. Your test clicks through the dApp, then checks what actually landed on chain.
 
+Website and live playground: https://solana-e2e.saturnomangieri.com
+
 ## Install
 
 ```bash
