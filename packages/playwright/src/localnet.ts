@@ -53,8 +53,11 @@ export interface Localnet {
   getBalance(address: string): Promise<bigint>;
   /** Wait for a signature to reach `commitment`. Throws if the transaction failed. */
   waitForSignature(signature: string, options?: { commitment?: Commitment; timeoutMs?: number }): Promise<void>;
-  /** Fetch a landed transaction with its logs and balance changes. */
-  getTransaction(signature: string): Promise<TransactionSummary>;
+  /**
+   * Fetch a landed transaction with its logs and balance changes. `maxSupportedTransactionVersion`
+   * defaults to 1, so legacy, v0 and v1 transactions are all returned.
+   */
+  getTransaction(signature: string, options?: { maxSupportedTransactionVersion?: 0 | 1; timeoutMs?: number }): Promise<TransactionSummary>;
   stop(): Promise<void>;
 }
 
@@ -102,11 +105,11 @@ function createClient(rpcUrl: string, wsUrl: string, stop: () => Promise<void>):
       const { value } = await rpc.getBalance(toAddress(addr), { commitment: "confirmed" }).send();
       return value;
     },
-    async getTransaction(sig) {
-      const deadline = Date.now() + 10_000;
+    async getTransaction(sig, { maxSupportedTransactionVersion = 1, timeoutMs = 10_000 } = {}) {
+      const deadline = Date.now() + timeoutMs;
       for (;;) {
         const tx = await rpc
-          .getTransaction(toSignature(sig), { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion: 0 })
+          .getTransaction(toSignature(sig), { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion })
           .send();
         if (tx) {
           const keys = tx.transaction.message.accountKeys as readonly Address[];

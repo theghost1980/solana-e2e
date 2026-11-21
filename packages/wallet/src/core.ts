@@ -9,6 +9,7 @@ import {
   getBase64EncodedWireTransaction,
   getTransactionDecoder,
   getTransactionEncoder,
+  getTransactionVersionDecoder,
   partiallySignTransaction,
   signBytes,
   type Address,
@@ -365,15 +366,19 @@ export class TestWallet {
       this.log({ method: "connect", outcome: "rejected", error: { code: ErrorCode.UNAUTHORIZED, message: "silent connect on an untrusted site" } });
       return {};
     }
-    if (silent || this.connected) {
+    if (silent) {
+      // A trusted silent connect never prompts, so directives and manual approval do not apply.
       this.connected = true;
       this.log({ method: "connect", outcome: "approved", address: this.address });
       return {};
     }
+    // An explicit connect goes through approval even when already connected, so
+    // rejectNext({ method: "connect" }) and manual approval are respected.
     return this.run({ method: "connect", address: this.address }, async () => {
+      const wasConnected = this.connected;
       this.connected = true;
       this.trusted = true;
-      this.emitChange();
+      if (!wasConnected) this.emitChange();
       return {};
     });
   }
@@ -388,7 +393,7 @@ export class TestWallet {
 
   private async signTransaction(address: string, wire: Uint8Array, chain?: string) {
     const account = this.authorized(address, "signTransaction");
-    const transaction = this.decode(wire);
+    const transaction = this.decode(wire, "signTransaction", address);
     return this.run({ method: "signTransaction", address, chain }, async (logged) => {
       const signed = await partiallySignTransaction([account.keyPair], transaction);
       logged.signature = base58.decode(signed.signatures[account.address] as Uint8Array);
@@ -403,15 +408,28 @@ export class TestWallet {
     options: { commitment?: Commitment; skipPreflight?: boolean; maxRetries?: number },
   ) {
     const account = this.authorized(address, "signAndSendTransaction");
-    const transaction = this.decode(wire);
+    const transaction = this.decode(wire, "signAndSendTransaction", address);
     return this.run({ method: "signAndSendTransaction", address, chain }, async (logged) => {
+      const signers = Object.keys(transaction.signatures);
+      if (!signers.includes(account.address)) {
+        throw new TestWalletError(ErrorCode.INTERNAL, `[solana-e2e] the wallet account ${account.address} is not a signer of this transaction`);
+      }
+      if (signers[0] !== account.address) {
+        throw new TestWalletError(
+          ErrorCode.INTERNAL,
+          `[solana-e2e] the wallet account is not the fee payer (fee payer: ${signers[0]}); sign with signTransaction and send it yourself`,
+        );
+      }
       const signed = await partiallySignTransaction([account.keyPair], transaction);
-      const feePayerSignature = Object.values(signed.signatures)[0];
-      if (!feePayerSignature) throw new TestWalletError(ErrorCode.INTERNAL, "[solana-e2e] transaction has no signer slots");
-      const signature = base58.decode(feePayerSignature) as Signature;
+      const missing = Object.entries(signed.signatures).filter(([, value]) => !value).map(([key]) => key);
+      if (missing.length) {
+        throw new TestWalletError(ErrorCode.INTERNAL, `[solana-e2e] the transaction needs other signers: ${missing.join(", ")}`);
+      }
+      const ownSignature = signed.signatures[account.address]!;
+      const signature = base58.decode(ownSignature) as Signature;
       logged.signature = signature;
       if (this.mode === "rpc") await this.send(signed, signature, options);
-      return { signature: toArray(feePayerSignature) };
+      return { signature: toArray(ownSignature) };
     });
   }
 
@@ -447,12 +465,25 @@ export class TestWallet {
     return this.active;
   }
 
-  private decode(wire: Uint8Array): Transaction {
+  /** Decode the wire bytes and refuse versions the wallet does not advertise, like a real wallet. */
+  private decode(wire: Uint8Array, method: WalletMethod, address: string): Transaction {
+    let transaction: Transaction;
+    let version: TransactionVersion;
     try {
-      return getTransactionDecoder().decode(wire);
+      transaction = getTransactionDecoder().decode(wire);
+      version = getTransactionVersionDecoder().decode(transaction.messageBytes) as TransactionVersion;
     } catch (error) {
       throw new TestWalletError(ErrorCode.INTERNAL, `[solana-e2e] could not decode the transaction: ${(error as Error).message}`);
     }
+    if (!this.info.supportedTransactionVersions.includes(version)) {
+      const error = new TestWalletError(
+        ErrorCode.UNSUPPORTED_VERSION,
+        `[solana-e2e] transaction version ${version} is not supported (supportedTransactionVersions: ${this.info.supportedTransactionVersions.join(", ")})`,
+      );
+      this.log({ method, address, outcome: "rejected", error: { code: error.code, message: error.message } });
+      throw error;
+    }
+    return transaction;
   }
 
   private async send(signed: Transaction, signature: Signature, options: { commitment?: Commitment; skipPreflight?: boolean; maxRetries?: number }) {

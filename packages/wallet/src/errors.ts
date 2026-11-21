@@ -3,6 +3,8 @@ export const ErrorCode = {
   USER_REJECTED: 4001,
   UNAUTHORIZED: 4100,
   UNSUPPORTED_METHOD: 4200,
+  /** The transaction version is not in the wallet's supportedTransactionVersions. */
+  UNSUPPORTED_VERSION: 4201,
   INTERNAL: -32603,
   TRANSACTION_FAILED: -32002,
 } as const;

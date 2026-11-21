@@ -14,7 +14,12 @@ import {
 export const MEMO_PROGRAM = address("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
 /** A memo transaction paid by `feePayer`, encoded as wire bytes. */
-export function memoTransaction(feePayer: Address, version: "legacy" | 0 | 1 = 0, text = "hello"): Uint8Array {
+export function memoTransaction(
+  feePayer: Address,
+  version: "legacy" | 0 | 1 = 0,
+  text = "hello",
+  otherSigners: readonly Address[] = [],
+): Uint8Array {
   const message = pipe(
     createTransactionMessage({ version }),
     (m) => setTransactionMessageFeePayer(feePayer, m),
@@ -25,7 +30,7 @@ export function memoTransaction(feePayer: Address, version: "legacy" | 0 | 1 = 0
       ),
     (m) =>
       appendTransactionMessageInstruction(
-        { programAddress: MEMO_PROGRAM, accounts: [{ address: feePayer, role: 3 }], data: new TextEncoder().encode(text) },
+        { programAddress: MEMO_PROGRAM, accounts: [feePayer, ...otherSigners].map((signer) => ({ address: signer, role: 3 as const })), data: new TextEncoder().encode(text) },
         m,
       ),
   );

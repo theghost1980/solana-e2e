@@ -81,6 +81,50 @@ describe("signing", () => {
     fetchSpy.mockRestore();
   });
 
+  test("a version outside supportedTransactionVersions is rejected", async () => {
+    const wallet = await TestWallet.create({ supportedTransactionVersions: ["legacy", 0] });
+    await connect(wallet);
+    for (const method of ["signTransaction", "signAndSendTransaction"]) {
+      const response = await wallet.handle(method, { address: wallet.address, transaction: [...memoTransaction(wallet.address, 1)] });
+      expect(response).toMatchObject({ ok: false, error: { code: ErrorCode.UNSUPPORTED_VERSION } });
+      expect(wallet.requests.at(-1)).toMatchObject({ method, outcome: "rejected" });
+    }
+    expect((await wallet.handle("signTransaction", { address: wallet.address, transaction: [...memoTransaction(wallet.address, 0)] })).ok).toBe(true);
+  });
+
+  test("signAndSendTransaction returns the wallet's own signature when it is the fee payer", async () => {
+    const other = await TestWallet.create({ accounts: ["other"] });
+    const wallet = await TestWallet.create({ accounts: ["me"] });
+    await connect(wallet);
+    // `other` already signed: the wallet completes the transaction and returns its own signature.
+    const wire = memoTransaction(wallet.address, 0, "hello", [other.address]);
+    const partial = getTransactionDecoder().decode(wire);
+    const { partiallySignTransaction, getTransactionEncoder } = await import("@solana/kit");
+    const { keyPair } = (await other.signer()) as unknown as { keyPair: CryptoKeyPair };
+    const preSigned = await partiallySignTransaction([keyPair], partial);
+    const value = ok(
+      await wallet.handle("signAndSendTransaction", { address: wallet.address, transaction: [...getTransactionEncoder().encode(preSigned)] }),
+    );
+    expect(await verify(wallet.address, value.signature!, Uint8Array.from(partial.messageBytes))).toBe(true);
+  });
+
+  test("signAndSendTransaction refuses when the wallet is not the fee payer or signers are missing", async () => {
+    const other = await TestWallet.create({ accounts: ["other"] });
+    const wallet = await TestWallet.create({ accounts: ["me"] });
+    await connect(wallet);
+    const send = (wire: Uint8Array) => wallet.handle("signAndSendTransaction", { address: wallet.address, transaction: [...wire] });
+
+    const notPayer = await send(memoTransaction(other.address, 0, "hello", [wallet.address]));
+    expect(notPayer).toMatchObject({ ok: false, error: { message: expect.stringContaining("not the fee payer") } });
+
+    const missing = await send(memoTransaction(wallet.address, 0, "hello", [other.address]));
+    expect(missing).toMatchObject({ ok: false, error: { message: expect.stringContaining(`needs other signers: ${other.address}`) } });
+
+    const stranger = await send(memoTransaction(other.address));
+    expect(stranger).toMatchObject({ ok: false, error: { message: expect.stringContaining("is not a signer") } });
+    expect(wallet.requests.slice(-3).map((r) => r.outcome)).toEqual(["failed", "failed", "failed"]);
+  });
+
   test("signing before connect is unauthorized", async () => {
     const wallet = await TestWallet.create();
     const response = await wallet.handle("signMessage", { address: wallet.address, message: [1] });
@@ -123,6 +167,36 @@ describe("controls", () => {
     const response = await wallet.handle("connect", {});
     expect(response).toMatchObject({ ok: false, accounts: [] });
     expect(wallet.isConnected).toBe(false);
+  });
+
+  test("an explicit connect while connected still honours rejectNext and emits no change", async () => {
+    const wallet = await TestWallet.create();
+    await connect(wallet);
+    const changes: number[] = [];
+    wallet.onChange((accounts) => changes.push(accounts.length));
+    wallet.rejectNext({ method: "connect" });
+    expect(await wallet.handle("connect", {})).toMatchObject({ ok: false, error: { code: 4001 } });
+    expect(wallet.isConnected).toBe(true);
+    expect((await wallet.handle("connect", {})).ok).toBe(true);
+    expect(changes).toEqual([]);
+  });
+
+  test("waitForRequest: past and future requests, outcome filter, timeout", async () => {
+    const wallet = await TestWallet.create();
+    await connect(wallet);
+    expect(await wallet.waitForRequest("connect")).toMatchObject({ outcome: "approved" });
+
+    const rejected = wallet.waitForRequest("signMessage", { outcome: "rejected", timeoutMs: 1_000 });
+    await wallet.handle("signMessage", { address: wallet.address, message: [1] });
+    wallet.rejectNext();
+    await wallet.handle("signMessage", { address: wallet.address, message: [2] });
+    expect(await rejected).toMatchObject({ method: "signMessage", outcome: "rejected" });
+
+    const byPredicate = wallet.waitForRequest((r) => r.message === "late", { timeoutMs: 1_000 });
+    setTimeout(() => void wallet.handle("signMessage", { address: wallet.address, message: [...new TextEncoder().encode("late")] }), 20);
+    expect(await byPredicate).toMatchObject({ outcome: "approved", message: "late" });
+
+    await expect(wallet.waitForRequest("signIn", { timeoutMs: 50 })).rejects.toThrow(/no signIn request within 50 ms/);
   });
 
   test("failNext uses the given code and message", async () => {
