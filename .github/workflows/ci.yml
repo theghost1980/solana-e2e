@@ -70,6 +70,27 @@ jobs:
           name: playwright-report-mock-${{ matrix.os }}
           path: examples/demo-dapp/playwright-report
 
+  site:
+    name: site and playground
+    needs: lockfile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build -w @solana-e2e/wallet
+      - run: npx playwright install --with-deps chromium
+      # Builds the site and tests the production build (the playground runs the wallet in the page).
+      - run: npm run test:e2e -w site
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-site
+          path: apps/site/playwright-report
+
   e2e-localnet:
     name: e2e rpc mode on Surfpool (${{ matrix.os }})
     needs: lockfile
