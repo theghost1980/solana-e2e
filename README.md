@@ -55,6 +55,10 @@ npx playwright install chromium
 cd examples/demo-dapp && SURFPOOL_BIN=/path/to/surfpool npx playwright test
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the [changelog](CHANGELOG.md).
+
 ## License
 
 MIT

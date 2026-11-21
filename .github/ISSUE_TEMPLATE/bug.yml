@@ -1,0 +1,25 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A test or a small repo. Never paste a key that holds real funds.
+      render: ts
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "@solana-e2e/wallet 0.1.0, @playwright/test 1.65, @solana/kit 8.6, Node 22, OS"
+    validations:
+      required: true

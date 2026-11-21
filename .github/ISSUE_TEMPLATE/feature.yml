@@ -1,0 +1,16 @@
+name: Feature request
+description: Something the test wallet or the fixtures should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: case
+    attributes:
+      label: What do you want to test?
+      description: The user flow or edge case, and why the current API does not cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: How would you like to write the test?
+      render: ts

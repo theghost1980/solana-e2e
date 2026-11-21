@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Question or idea
+    url: https://github.com/theghost1980/solana-e2e/discussions
+    about: Ask in Discussions first if you are not sure it is a bug.
